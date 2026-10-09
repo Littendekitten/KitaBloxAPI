@@ -3,9 +3,9 @@ package com.kitablox.api;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.CloudRenderMode;
-import net.minecraft.particle.ParticleStatus;
 
 public final class PerformanceProfile {
+
     private PerformanceProfile() {
     }
 
@@ -17,9 +17,11 @@ public final class PerformanceProfile {
         }
 
         if (cfg.nvidiaFpsBoost) {
+            // Reduce cloud rendering overhead.
             client.options.getCloudRenderMode().setValue(CloudRenderMode.OFF);
+
+            // Disable entity shadows to reduce rendering work.
             client.options.getEntityShadows().setValue(false);
-            client.options.getParticles().setValue(ParticleStatus.MINIMAL);
         }
     }
 }
