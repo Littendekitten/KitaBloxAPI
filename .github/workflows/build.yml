@@ -16,55 +16,103 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Download the repository
       - name: Checkout source
         uses: actions/checkout@v4
 
+      # 2. Install Java 21
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
+      # 3. Install a compatible Gradle version
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
 
+      # 4. Check that the project files exist
       - name: Check project structure
+        shell: bash
         run: |
           echo "=== Current directory ==="
           pwd
+
           echo "=== Project files ==="
-          find . -maxdepth 4 -type f \
+          find . -maxdepth 5 -type f \
             -not -path './.git/*' | sort | head -300
-          echo "=== Gradle configuration files ==="
-          find . -maxdepth 4 -type f \
-            \( -name "build.gradle" \
-            -o -name "build.gradle.kts" \
-            -o -name "settings.gradle" \
-            -o -name "settings.gradle.kts" \
-            -o -name "gradle.properties" \) -print
 
-      - name: List Gradle tasks
-        run: gradle tasks --all --no-daemon
+          echo "=== Required Gradle files ==="
+          for file in build.gradle settings.gradle gradle.properties; do
+            if [ -f "$file" ]; then
+              echo "FOUND: $file"
+            else
+              echo "MISSING: $file"
+            fi
+          done
 
+          if [ ! -f build.gradle ]; then
+            echo "ERROR: build.gradle is missing from the repository root."
+            exit 1
+          fi
+
+          if [ ! -f settings.gradle ]; then
+            echo "ERROR: settings.gradle is missing from the repository root."
+            exit 1
+          fi
+
+          if [ ! -f gradle.properties ]; then
+            echo "ERROR: gradle.properties is missing from the repository root."
+            exit 1
+          fi
+
+      # 5. Verify that Gradle has a real build task
+      - name: Verify Gradle build task
+        shell: bash
+        run: |
+          gradle tasks --all --no-daemon
+
+          if ! gradle help --task build --no-daemon 2>&1 | grep -qE 'Task :build|Detailed task information'; then
+            echo "Checking whether the build task is registered..."
+          fi
+
+          gradle -q tasks --all --no-daemon > gradle-tasks.txt
+
+          if ! grep -Eq '(^|[[:space:]])build([[:space:]]+-|$)' gradle-tasks.txt; then
+            echo "ERROR: No real build task was found."
+            echo "Check that build.gradle applies the Fabric Loom plugin."
+            cat gradle-tasks.txt
+            exit 1
+          fi
+
+      # 6. Compile the mod
       - name: Build mod
-        run: gradle :build --no-daemon --stacktrace
+        run: gradle build --no-daemon --stacktrace
 
+      # 7. Find the compiled mod JAR
       - name: Find generated JAR files
         if: always()
+        shell: bash
         run: |
-          echo "=== All generated JAR files ==="
+          echo "=== JAR files ==="
           find . -type f -name "*.jar" \
             -not -path './.git/*' -print
-          echo "=== Build directories ==="
-          find . -type d -name build \
-            -not -path './.git/*' -print
-          echo "=== Expected output directory ==="
-          ls -lah build/libs/ || true
 
-      - name: Upload JAR
+          echo "=== Build output directory ==="
+          if [ -d build/libs ]; then
+            ls -lah build/libs/
+          else
+            echo "No root build/libs directory found."
+          fi
+
+      # 8. Upload the mod JAR as a downloadable artifact
+      - name: Upload KitaBloxAPI JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: KitaBloxAPI-JAR
-          path: '**/build/libs/*.jar'
+          path: build/libs/*.jar
           if-no-files-found: error
+          retention-days: 14
