@@ -28,20 +28,43 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build mod
-        run: gradle build --no-daemon --stacktrace
+      - name: Check project structure
+        run: |
+          echo "=== Current directory ==="
+          pwd
+          echo "=== Project files ==="
+          find . -maxdepth 4 -type f \
+            -not -path './.git/*' | sort | head -300
+          echo "=== Gradle configuration files ==="
+          find . -maxdepth 4 -type f \
+            \( -name "build.gradle" \
+            -o -name "build.gradle.kts" \
+            -o -name "settings.gradle" \
+            -o -name "settings.gradle.kts" \
+            -o -name "gradle.properties" \) -print
 
-      - name: List build outputs
+      - name: List Gradle tasks
+        run: gradle tasks --all --no-daemon
+
+      - name: Build mod
+        run: gradle :build --no-daemon --stacktrace
+
+      - name: Find generated JAR files
         if: always()
         run: |
-          echo "Checking build outputs..."
-          find . -type f -name "*.jar" -print
-          echo "Checking build/libs..."
+          echo "=== All generated JAR files ==="
+          find . -type f -name "*.jar" \
+            -not -path './.git/*' -print
+          echo "=== Build directories ==="
+          find . -type d -name build \
+            -not -path './.git/*' -print
+          echo "=== Expected output directory ==="
           ls -lah build/libs/ || true
 
       - name: Upload JAR
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: KitaBloxAPI-JAR
-          path: build/libs/*.jar
+          path: '**/build/libs/*.jar'
           if-no-files-found: error
