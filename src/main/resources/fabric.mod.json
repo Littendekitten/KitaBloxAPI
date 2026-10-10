@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "kitabloxapi",
+  "version": "${version}",
+  "name": "KitaBlox API",
+  "description": "KitaBlox client-side settings and reversible performance options for Minecraft 1.21.11 Fabric.",
+  "authors": ["KitaBlox"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.kitablox.api.KitaBloxApiClient"]
+  },
+  "mixins": ["kitabloxapi.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "minecraft": "1.21.11",
+    "fabric-api": "*"
+  }
+}

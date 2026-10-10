@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.kitablox.api.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ScreenAccessor",
+    "InGameHudMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
